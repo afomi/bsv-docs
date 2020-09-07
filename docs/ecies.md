@@ -1,102 +1,41 @@
 # ECIES
-`bsv/ecies` is a library that work with bsv's private/public keys. 
+Bitcore implements [Elliptic Curve Integrated Encryption Scheme (ECIES)](http://en.wikipedia.org/wiki/Integrated_Encryption_Scheme), which is a public key encryption system that performs bulk encryption on data using a symmetric cipher and a random key.
 
-It provide electrum compatible ECIES message by default.
+For more information refer to the [bsv-ecies](https://github.com/bitpay/bsv-ecies) github repo.
 
-## Options
-The constructor accept several options
+## Installation
+ECIES is implemented as a separate module and you must add it to your dependencies:
 
-- `ephemeralKey`: should use ephemeral private key to encrypt message. `true` by default. It's set to `false` automatically if you provide private key later.
-- `noKey`: should exclude encrypt public key in message. `false` by default, disabled if `ephemeralKey` is `true`. Typically, public key is included in message, so receiver need only his private key to decrypt. Receiver must use same option with sender, in order to decrypt message properly. 
-- `shortTag`: should use shorten HMAC in message. `false` by default. Receiver must use same option with sender, in order to decrypt message properly.
+For node projects:
 
-## Examples
-
-### Message to Bob
-
-```javascript
-var bsv = require('bsv')
-var IES = require('bsv/ecies')
-
-var bob = bsv.PrivateKey()
-var bobPubkey = bob.publicKey
-
-// Send a message to bob
-var enc = new IES().publicKey(bobPubkey).encrypt('a message')
-// Bob decrypt a message
-var dec = new IES().privateKey(bob).decrypt(enc)
+```bash
+npm install bsv-ecies --save
 ```
 
-### Messages between Alice and Bob
+For client-side projects:
 
-~~~javascript
-var bsv = require('bsv')
-var IES = require('bsv/ecies')
+```bash
+bower install bsv-ecies --save
+```
 
-var alice = bsv.PrivateKey()
-var alicePubkey = alice.publicKey
-var bob = bsv.PrivateKey()
-var bobPubkey = bob.publicKey
+## Example
 
-var iesAlice = new IES({'nokey':true}).privateKey(alice).publicKey(bobPubkey)
+```javascript
+var bsv = require('bsv');
+var ECIES = require('bsv/ecies');
 
-var iesBob = new IES({'nokey':true}).privateKey(bob).publicKey(alicePubkey)
+var alicePrivateKey = new bsv.PrivateKey();
+var bobPrivateKey = new bsv.PrivateKey();
 
-messageAlice = iesAlice.encrypt('Hello Bob')
-messageAliceDec = iesBob.decrypt(messageAlice)
+var data = new Buffer('The is a raw data example');
 
-messageBob = iesBob.encrypt('Hi Alice')
-messageBobDec = iesAlice.decrypt(messageBob)
-~~~
+// Encrypt data
+var cypher1 = ECIES.privateKey(alicePrivateKey).publicKey(bobPrivateKey.publicKey);
+var encrypted = cypher1.encrypt(data);
 
-### Recover messages
+// Decrypt data
+var cypher2 = ECIES.privateKey(bobPrivateKey).publicKey(alicePrivateKey.publicKey);
+var decrypted = cypher2.decrypt(encrypted);
 
-Sender can recover messages if `ephemeralKey` is `false`.
-
-~~~javascript
-var bsv = require('bsv')
-var IES = require('bsv/ecies')
-
-var alice = bsv.PrivateKey()
-var alicePubkey = alice.publicKey
-var bob = bsv.PrivateKey()
-var bobPubkey = bob.publicKey
-
-var iesAlice = new IES({'nokey':true}).privateKey(alice).publicKey(bobPubkey)
-
-var iesBob = new IES({'nokey':true}).privateKey(bob).publicKey(alicePubkey)
-
-messageAlice = iesAlice.encrypt('Hello Bob')
-messageAliceRecover = iesAlice.decrypt(messageAlice)
-~~~
-
-### ECDH Key
-
-Sometimes you may want to extract ECDH key for other use.
-
-~~~javascript
-var bsv = require('bsv')
-var IES = require('bsv/ecies')
-
-var alice = bsv.PrivateKey()
-var alicePubkey = alice.publicKey
-var bob = bsv.PrivateKey()
-var bobPubkey = bob.publicKey
-
-var iesAlice = new IES().privateKey(alice).publicKey(bobPubkey)
-
-var iesBob = new IES().privateKey(bob).publicKey(alicePubkey)
-
-var sharedSecret = iesAlice.ivkEkM
-var sharedSecret = iesBob.ivkEkM
-~~~
-
-### Bitcore ECIES
-
-Sometimes you may want to use bitcore sytle ECIES.
-
-~~~javascript
-var bsv = require('bsv')
-var IES = require('bsv/ecies').bitcoreECIES
-~~~
-
+assert(data.toString(), decrypted.toString());
+```
